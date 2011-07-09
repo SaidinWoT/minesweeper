@@ -8,12 +8,10 @@
 #define ROWS 10
 #define COLS 10
 
-struct board {
+typedef struct board {
 	int board[ROWS][COLS];
 	int mines;
-};
-
-typedef struct board board;
+} board;
 
 board* createBoard();
 void populate(board* gameBoard, int mines);
@@ -29,8 +27,7 @@ int main(void) {
 	printf("How many mines would you like? ");
 	scanf("%d", &mines);
 	firstTurn(game, mines);
-	while(takeTurn(game)) {
-	}
+	while(takeTurn(game)) {}
 	printf("Game Over!\n");
 }
 
@@ -72,7 +69,7 @@ void populate(board* gameBoard, int mines) {
 
 void printBoard(board* gameBoard) {
 	int i, j;
-	printf("  ");
+	printf("   ");
 	for(j = 0; j < COLS; j++) {
 		printf("%2d ", j);
 	}
