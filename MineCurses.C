@@ -1,5 +1,5 @@
-/* NCurses Minesweeper.
- *
+/*
+ * NCurses Minesweeper.
  */
 
 #include <ncurses.h>
@@ -17,7 +17,7 @@ board* createBoard();
 void populate(board* gameBoard, int mines);
 void printBoard(board* gameBoard);
 int checkSpot(board* gameBoard, int row, int col);
-void firstTurn(board* gameBoard, int mines);
+int firstTurn(board* gameBoard, int mines);
 int takeTurn(board* gameBoard);
 int eolprintw(int y, int x, const char* msg);
 
@@ -41,18 +41,18 @@ int main()
 
 	move(0,0);
 	clrtoeol();
-	firstTurn(game, mines);
-	while(takeTurn(game)) {}
-
-	if(clean > 0) {
-		attron(COLOR_PAIR(1) | A_BOLD);
-		eolprintw(ROWS+2, 0, "LOL YOU FAILED!");
-		attroff(COLOR_PAIR(1) | A_BOLD);
-	} else {
-		attron(COLOR_PAIR(1) | A_BOLD);
-		eolprintw(ROWS+2, 0, "EPIC WINZ!");
-		attroff(COLOR_PAIR(1) | A_BOLD);
+	if(firstTurn(game, mines)) {
+		while(takeTurn(game)) {}
 	}
+	
+	printBoard(game);
+	attron(COLOR_PAIR(1) | A_BOLD);
+	if(clean > 0) {
+		eolprintw(ROWS+2, 0, "LOL YOU FAILED!");
+	} else {
+		eolprintw(ROWS+2, 0, "EPIC WINZ!");
+	}
+	attroff(COLOR_PAIR(1) | A_BOLD);
 	endwin();
 
 	return 0;
@@ -61,16 +61,14 @@ int main()
 board* createBoard() {
 	board* newBoard = (board*)malloc(sizeof(board));
 	int i, j;
-	for(i = 0; i < ROWS; i ++) {
-		for(j = 0; j < COLS; j++) {
-			newBoard->board[i][j] = -1;
-		}
+	for(i = 0; i < ROWS * COLS; i ++) {
+		newBoard->board[i/COLS][i%COLS] = -1;
 	}
 	newBoard->mines = 0;
 	return newBoard;
 }
 
-void firstTurn(board* gameBoard, int mines) {
+int firstTurn(board* gameBoard, int mines) {
 	int row, col;
 	printBoard(gameBoard);
 	row = eolprintw(ROWS+2, 0, "Select a row to check: ");
@@ -78,13 +76,14 @@ void firstTurn(board* gameBoard, int mines) {
 	gameBoard->board[row][col] = -2;
 	populate(gameBoard, mines);
 	gameBoard->board[row][col] = -1;
-	checkSpot(gameBoard, row, col);
+	return checkSpot(gameBoard, row, col);
 }
 
 void populate(board* gameBoard, int mines) {
+	int posR, posC;
 	while(gameBoard->mines < mines) {
-		int posR = rand()%ROWS;
-		int posC = rand()%COLS;
+		posR = rand()%ROWS;
+		posC = rand()%COLS;
 		if(gameBoard->board[posR][posC] != -2) {
 			gameBoard->board[posR][posC] = -2;
 			gameBoard->mines++;
@@ -102,7 +101,7 @@ void printBoard(board* gameBoard) {
 		for(j = 0; j < COLS; j++) {
 			if(gameBoard->board[i][j] < 0) {
 				attron(COLOR_PAIR(1));
-				mvprintw(i+1, 3*(j+1), "[+]");
+				mvprintw(i+1, 3*(j+1), "[*]");
 				attroff(COLOR_PAIR(1));
 			} else if(gameBoard->board[i][j] == 0) {
 				attron(COLOR_PAIR(2));
@@ -177,7 +176,6 @@ int takeTurn(board* gameBoard) {
 	if(checkSpot(gameBoard, row, col)) {
 		return 1;
 	} else {
-		printBoard(gameBoard);
 		return 0;
 	}
 }
