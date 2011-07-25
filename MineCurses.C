@@ -16,12 +16,13 @@ typedef struct board {
 board* createBoard();
 void populate(board* gameBoard, int mines);
 void printBoard(board* gameBoard);
-int checkSpot(board* gameBoard, int row, int col);
+int checkSpot(board* gameBoard, int r, int c);
+void checkAround(board* gameBoard, int r, int c, int opt);
 int firstTurn(board* gameBoard, int mines);
 int takeTurn(board* gameBoard);
 int eolprintw(int y, int x, const char* msg);
 
-int mines, clean;
+int mines, clean, row, col;
 
 int main()
 {
@@ -47,11 +48,7 @@ int main()
 	
 	printBoard(game);
 	attron(COLOR_PAIR(1) | A_BOLD);
-	if(clean > 0) {
-		eolprintw(ROWS+2, 0, "LOL YOU FAILED!");
-	} else {
-		eolprintw(ROWS+2, 0, "EPIC WINZ!");
-	}
+	clean > 0 ? eolprintw(ROWS+2, 0, "LOL YOU FAILED!") : eolprintw(ROWS+2, 0, "EPIC WINZ!");
 	attroff(COLOR_PAIR(1) | A_BOLD);
 	endwin();
 
@@ -69,7 +66,6 @@ board* createBoard() {
 }
 
 int firstTurn(board* gameBoard, int mines) {
-	int row, col;
 	printBoard(gameBoard);
 	row = eolprintw(ROWS+2, 0, "Select a row to check: ");
 	col = eolprintw(ROWS+2, 0, "Select a column to check: ");
@@ -117,67 +113,51 @@ void printBoard(board* gameBoard) {
 	refresh();
 }
 
-int checkSpot(board* gameBoard, int row, int col) {
-	if(gameBoard->board[row][col] == -2) {
+int checkSpot(board* gameBoard, int r, int c) {
+	if(gameBoard->board[r][c] == -2) {
 		return 0;
 	}
-	if(gameBoard->board[row][col] == -1) {
-		gameBoard->board[row][col] = 0;
-		int i, j;
-		for(i = (row - 1); i <= (row + 1); i++) {
-			if(i < 0) {
-				i = 0;
-			} else if(i == ROWS) {
-				break;
-			}
-			for(j = col - 1; j <= col + 1; j++) {
-				if(j < 0) {
-					j = 0;
-				} else if(j == COLS) {
-					break;
-				}
-				if(gameBoard->board[i][j] == -2) {
-					gameBoard->board[row][col]++;
-				}
-			}
+	if(gameBoard->board[r][c] == -1) {
+		gameBoard->board[r][c] = 0;
+		checkAround(gameBoard, r, c, 0);
+		if(gameBoard->board[r][c] == 0) {
+			checkAround(gameBoard, r, c, 1);
 		}
-		if(gameBoard->board[row][col] == 0) {
-			for(i = row - 1; i <= row + 1; i++) {
-				if(i < 0) {
-					i = 0;
-				} else if(i == ROWS) {
-					break;
-				}
-				for(j = col - 1; j <= col + 1; j++) {
-					if(j < 0) {
-						j = 0;
-					} else if(j == COLS) {
-						break;
-					}
-					if(gameBoard->board[i][j] == -1) {
-						checkSpot(gameBoard, i, j);
-					}
-				}
-			}
-		}
-		clean--;
-		if(clean <= 0) {
+		if(--clean <= 0) {
 			return 0;
 		}
 	}
 	return 1;
 }
 
+void checkAround(board* gameBoard, int r, int c, int opt) {
+	int i, j;
+	for(i = r - 1; i <= r + 1; i++) {
+		if(i < 0) {
+			i = 0;
+		} else if(i == ROWS) {
+			break;
+		}
+		for(j = c - 1; j <= c + 1; j++) {
+			if(j < 0) {
+				j = 0;
+			} else if(j == COLS) {
+				break;
+			}
+			if(opt == 0 && gameBoard->board[i][j] == -2) {
+				gameBoard->board[r][c]++;
+			} else if(opt == 1 && gameBoard->board[i][j] == -1) {
+				checkSpot(gameBoard, i, j);
+			}
+		}
+	}
+}
+
 int takeTurn(board* gameBoard) {
-	int row, col;
 	printBoard(gameBoard);
 	row = eolprintw(ROWS+2, 0, "Select a row to check: ");
 	col = eolprintw(ROWS+2, 0, "Select a column to check: ");
-	if(checkSpot(gameBoard, row, col)) {
-		return 1;
-	} else {
-		return 0;
-	}
+	return checkSpot(gameBoard, row, col);
 }
 
 int eolprintw(int y, int x, const char* msg) {
