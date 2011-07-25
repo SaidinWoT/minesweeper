@@ -20,15 +20,21 @@ int checkSpot(board* gameBoard, int row, int col);
 void firstTurn(board* gameBoard, int mines);
 int takeTurn(board* gameBoard);
 
+int mines, clean;
+
 int main(void) {
-	int mines;
 	srand(time(0));
 	board* game = createBoard();
 	printf("How many mines would you like? ");
 	scanf("%d", &mines);
+	clean = (ROWS * COLS) - mines;
 	firstTurn(game, mines);
 	while(takeTurn(game)) {}
-	printf("Game Over!\n");
+	if(clean > 0) {
+		printf("Game Over!\n");
+	} else {
+		printf("WOOT!\n");
+	}
 }
 
 board* createBoard() {
@@ -93,27 +99,10 @@ int checkSpot(board* gameBoard, int row, int col) {
 	if(gameBoard->board[row][col] == -2) {
 		return 0;
 	}
-	gameBoard->board[row][col] = 0;
-	int i, j;
-	for(i = (row - 1); i <= (row + 1); i++) {
-		if(i < 0) {
-			i = 0;
-		} else if(i == ROWS) {
-			break;
-		}
-		for(j = col - 1; j <= col + 1; j++) {
-			if(j < 0) {
-				j = 0;
-			} else if(j == COLS) {
-				break;
-			}
-			if(gameBoard->board[i][j] == -2) {
-				gameBoard->board[row][col]++;
-			}
-		}
-	}
-	if(gameBoard->board[row][col] == 0) {
-		for(i = row - 1; i <= row + 1; i++) {
+	if(gameBoard->board[row][col] == -1) {
+		gameBoard->board[row][col] = 0;
+		int i, j;
+		for(i = (row - 1); i <= (row + 1); i++) {
 			if(i < 0) {
 				i = 0;
 			} else if(i == ROWS) {
@@ -125,10 +114,33 @@ int checkSpot(board* gameBoard, int row, int col) {
 				} else if(j == COLS) {
 					break;
 				}
-				if(gameBoard->board[i][j] == -1) {
-					checkSpot(gameBoard, i, j);	
+				if(gameBoard->board[i][j] == -2) {
+					gameBoard->board[row][col]++;
 				}
 			}
+		}
+		if(gameBoard->board[row][col] == 0) {
+			for(i = row - 1; i <= row + 1; i++) {
+				if(i < 0) {
+					i = 0;
+				} else if(i == ROWS) {
+					break;
+				}
+				for(j = col - 1; j <= col + 1; j++) {
+					if(j < 0) {
+						j = 0;
+					} else if(j == COLS) {
+						break;
+					}
+					if(gameBoard->board[i][j] == -1) {
+						checkSpot(gameBoard, i, j);	
+					}
+				}
+			}
+		}
+		clean--;
+		if(clean <= 0) {
+			return 0;
 		}
 	}
 	return 1;
@@ -144,6 +156,7 @@ int takeTurn(board* gameBoard) {
 	if(checkSpot(gameBoard, row, col)) {
 		return 1;
 	} else {
+		printBoard(gameBoard);
 		return 0;
 	}
 }
