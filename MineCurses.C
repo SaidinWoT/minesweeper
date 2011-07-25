@@ -5,7 +5,7 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>
-#define ROWS 10
+#define ROWS 10 
 #define COLS 10
 
 typedef struct board {
@@ -26,9 +26,11 @@ int mines, clean;
 int main()
 {
 	initscr();
-	start_color();
-	init_pair(1, COLOR_WHITE, COLOR_BLUE);
-	init_pair(2, COLOR_BLACK, COLOR_CYAN);
+	if(has_colors() == TRUE) {
+		start_color();
+		init_pair(1, COLOR_WHITE, COLOR_BLUE);
+		init_pair(2, COLOR_BLACK, COLOR_CYAN);
+	}
 	noecho();
 	cbreak();
 
@@ -51,7 +53,6 @@ int main()
 		eolprintw(ROWS+2, 0, "EPIC WINZ!");
 		attroff(COLOR_PAIR(1) | A_BOLD);
 	}
-	getch();
 	endwin();
 
 	return 0;
