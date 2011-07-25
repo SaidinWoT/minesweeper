@@ -47,7 +47,7 @@ int main()
 	
 	printBoard(game);
 	attron(COLOR_PAIR(1) | A_BOLD);
-	eolprintw(ROWS+2, 0, clean > 0 ? "LOL YOU FAILED!" : "EPICWINZ!");
+	eolprintw(ROWS+2, 0, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
 	attroff(COLOR_PAIR(1) | A_BOLD);
 	endwin();
 
@@ -92,19 +92,15 @@ void printBoard(board* gameBoard) {
 	for(i = 0; i < ROWS; i++) {
 		mvprintw(i+1, 0, "%2d", i);
 		for(j = 0; j < COLS; j++) {
+			attron(COLOR_PAIR(gameBoard->board[i][j] < 0 ? 1 : 2));
 			if(gameBoard->board[i][j] < 0) {
-				attron(COLOR_PAIR(1));
 				mvprintw(i+1, 3*(j+1), "[%d]", gameBoard->board[i][j]);
-				attroff(COLOR_PAIR(1));
 			} else if(gameBoard->board[i][j] == 0) {
-				attron(COLOR_PAIR(2));
 				mvprintw(i+1, 3*(j+1), "   ");
-				attroff(COLOR_PAIR(2));
 			} else {
-				attron(COLOR_PAIR(2));
 				mvprintw(i+1, 3*(j+1), "[%d]", gameBoard->board[i][j]);
-				attroff(COLOR_PAIR(2));
 			}
+			standend();
 		}
 	}
 	refresh();
@@ -128,11 +124,13 @@ int checkSpot(board* gameBoard, int r, int c) {
 
 void checkAround(board* gameBoard, int r, int c, int opt) {
 	int i, j;
-	for(i = r < 1 ? 0 : r - 1; i <= (r == ROWS ? ROWS : r + 1); i++) {
-		for(j = c < 1 ? 0 : c - 1; j <= (c == COLS ? COLS : c + 1); j++) {
+	for(i = r < 1 ? 0 : r - 1; i <= (r == ROWS - 1 ? ROWS - 1 : r + 1); i++) {
+		for(j = c < 1 ? 0 : c - 1; j <= (c == COLS - 1 ? COLS - 1 : c + 1); j++) {
 			if(opt == 0 && gameBoard->board[i][j] == -2) {
 				gameBoard->board[r][c]++;
 			} else if(opt == 1 && gameBoard->board[i][j] == -1) {
+				printBoard(gameBoard);
+				getch();
 				checkSpot(gameBoard, i, j);
 			}
 		}
