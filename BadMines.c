@@ -14,7 +14,6 @@ typedef struct board {
 } board;
 
 board* createBoard();
-void populate(board* gameBoard, int mines);
 void printBoard(board* gameBoard);
 int checkSpot(board* gameBoard, int r, int c);
 void checkAround(board* gameBoard, int r, int c, int opt);
@@ -24,8 +23,7 @@ int eolprintw(int y, int x, const char* msg);
 
 int mines, clean, row, col;
 
-int main()
-{
+int main() {
 	initscr();
 	if(has_colors() == TRUE) {
 		start_color();
@@ -38,9 +36,8 @@ int main()
 	srand(time(0));
 	board* game = createBoard();
 	clean = (ROWS * COLS) - (mines = eolprintw(0, 0, "How many mines would you like? "));
+	clear();
 
-	move(0,0);
-	clrtoeol();
 	if(firstTurn(game, mines)) {
 		while(takeTurn(game)) {}
 	}
@@ -56,8 +53,8 @@ int main()
 
 board* createBoard() {
 	board* newBoard = (board*)malloc(sizeof(board));
-	int i, j;
-	for(i = 0; i < ROWS * COLS; i ++) {
+	int i;
+	for(i = 0; i < ROWS * COLS; i++) {
 		newBoard->board[i/COLS][i%COLS] = -1;
 	}
 	newBoard->mines = 0;
@@ -65,23 +62,19 @@ board* createBoard() {
 }
 
 int firstTurn(board* gameBoard, int mines) {
+	int posR, posC;
 	printBoard(gameBoard);
 	row = eolprintw(ROWS+2, 0, "Select a row to check: ");
 	col = eolprintw(ROWS+2, 0, "Select a column to check: ");
 	gameBoard->board[row][col] = -2;
-	populate(gameBoard, mines);
-	gameBoard->board[row][col] = -1;
-	return checkSpot(gameBoard, row, col);
-}
-
-void populate(board* gameBoard, int mines) {
-	int posR, posC;
 	while(gameBoard->mines < mines) {
 		if(gameBoard->board[posR = rand()%ROWS][posC = rand()%COLS] != -2) {
 			gameBoard->board[posR][posC] = -2;
 			gameBoard->mines++;
 		}
 	}
+	gameBoard->board[row][col] = -1;
+	return checkSpot(gameBoard, row, col);
 }
 
 void printBoard(board* gameBoard) {

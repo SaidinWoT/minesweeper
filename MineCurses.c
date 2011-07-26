@@ -24,8 +24,7 @@ int eolprintw(int y, int x, const char* msg);
 
 int mines, clean, row, col;
 
-int main()
-{
+int main() {
 	initscr();
 	if(has_colors() == TRUE) {
 		start_color();
@@ -39,9 +38,8 @@ int main()
 	board* game = createBoard();
 	mines = eolprintw(0, 0, "How many mines would you like? ");
 	clean = (ROWS * COLS) - mines;
+	clear();
 
-	move(0,0);
-	clrtoeol();
 	if(firstTurn(game, mines)) {
 		while(takeTurn(game)) {}
 	}
@@ -57,8 +55,8 @@ int main()
 
 board* createBoard() {
 	board* newBoard = (board*)malloc(sizeof(board));
-	int i, j;
-	for(i = 0; i < ROWS * COLS; i ++) {
+	int i;
+	for(i = 0; i < ROWS * COLS; i++) {
 		newBoard->board[i/COLS][i%COLS] = -1;
 	}
 	newBoard->mines = 0;
