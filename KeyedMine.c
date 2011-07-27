@@ -5,27 +5,28 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>
-#define ROWS 10
-#define COLS 10
+#define ROWS 9 
+#define COLS 9
+#define loc(y,x) game->board[y][x]
 
 typedef struct board {
 	int board[ROWS][COLS];
 	int mines;
 } board;
 
-int cursorX = 0;
-int cursorY = 0;
-int mines = 9;
-int choice, clean;
+int mines = 10;
+int cursY, cursX, choice, clean, i, j;
+board* game;
 
 board* createBoard();
-int firstTurn(board* gameBoard, int mines);
-void populate(board* gameBoard, int mines);
-void printBoard(board* gameBoard);
-int checkSpot(board* gameBoard, int row, int col);
-void checkAround(board* gameBoard, int row, int col, int opt);
-int moveCursor(board* gameBoard);
-int takeTurn(board* gameBoard);
+void printBoard();
+int firstTurn(int mines);
+int takeTurn();
+int moveCursor();
+int checkSpot(int row, int col);
+int checkAround(int row, int col, int opt);
+void flag();
+void mvatprintw(int y, int x, int attr, const char* msg);
 
 int main() {
 	initscr();
@@ -42,16 +43,14 @@ int main() {
 
 	srand(time(0));
 	clean = (ROWS * COLS) - mines;
-	board* game = createBoard();
+	game = createBoard();
 
-	if(firstTurn(game, mines)) {
-		while(takeTurn(game)) {}
+	if(firstTurn(mines)) {
+		while(takeTurn()) {}
 	}
 
-	printBoard(game);
-	attron(COLOR_PAIR(1) | A_BOLD);
-	mvprintw(ROWS, 0, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
-	attroff(COLOR_PAIR(1) | A_BOLD);
+	printBoard();
+	mvatprintw(ROWS, 0, COLOR_PAIR(1) | A_BOLD, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
 	getch();
 	endwin();
 
@@ -60,7 +59,6 @@ int main() {
 
 board* createBoard() {
 	board* newBoard = (board*)malloc(sizeof(board));
-	int i;
 	for(i = 0; i < ROWS * COLS; i++) {
 		newBoard->board[i/COLS][i%COLS] = -2;
 	}
@@ -68,137 +66,130 @@ board* createBoard() {
 	return newBoard;
 }
 
-int firstTurn(board* gameBoard, int mines) {
-	printBoard(gameBoard);
-	int choice = moveCursor(gameBoard);
-	if(choice == 0) { 
-		return 0;
-	} else if(choice == 1) {
-		gameBoard->board[cursorY][cursorX/3] = -4;
-		populate(gameBoard, mines);
-		gameBoard->board[cursorY][cursorX/3] = -2;
-	} else if(choice == 2) {
-		gameBoard->board[cursorY][cursorX/3] = -4;
-		populate(gameBoard, mines);
-		gameBoard->board[cursorY][cursorX/3] = -3;
-		return 1;
-	}
-	return checkSpot(gameBoard, cursorY, cursorX/3);
-}
-
-void populate(board* gameBoard, int mines) {
-	int posR, posC;
-	while(gameBoard->mines < mines) {
-		posR = rand()%ROWS;
-		posC = rand()%COLS;
-		if(gameBoard->board[posR][posC] != -4) {
-			gameBoard->board[posR][posC] = -4;
-			gameBoard->mines++;
-		}
-	}
-}
-
-void printBoard(board* gameBoard) {
-	int i, j;
+void printBoard() {
 	for(i = 0; i < ROWS; i++) {
 		for(j = 0; j < COLS; j++) {
-			if(gameBoard->board[i][j]%2 == -1) {
-				attron(COLOR_PAIR(3));
-				mvprintw(i, 3*j, "[F]");
-				attroff(COLOR_PAIR(3));
-			} else if(gameBoard->board[i][j] < 0) {
-				attron(COLOR_PAIR(1));
-				mvprintw(i, 3*j, "[*]");
-				attroff(COLOR_PAIR(1));
-			} else if(gameBoard->board[i][j] == 0) {
-				attron(COLOR_PAIR(2));
-				mvprintw(i, 3*j, "   ");
-				attroff(COLOR_PAIR(2));
+			if(loc(i, j)%2 == -1) {
+				mvatprintw(i, 3*j, COLOR_PAIR(3), "[F]");
+			} else if(loc(i, j) < 0) {
+				mvatprintw(i, 3*j, COLOR_PAIR(1), "[*]");
+			} else if(loc(i, j) == 0) {
+				mvatprintw(i, 3*j, COLOR_PAIR(2), "   ");
 			} else {
 				attron(COLOR_PAIR(2));
-				mvprintw(i, 3*j, "[%d]", gameBoard->board[i][j]);
+				mvprintw(i, 3*j, "[%d]", loc(i, j));
 				attroff(COLOR_PAIR(2));
 			}
 		}
 	}
-	mvchgat(cursorY, cursorX, 3, A_REVERSE, NULL, NULL);
-	refresh();
+	mvchgat(cursY, cursX*3, 3, A_REVERSE, NULL, NULL);
 }
 
-int checkSpot(board* gameBoard, int row, int col) {
-	if(gameBoard->board[row][col] <= -4) {
-		return 0;
-	} else if(gameBoard->board[row][col] <= -2) {
-		gameBoard->board[row][col] = 0;
-		checkAround(gameBoard, row, col, 0);
-		if(gameBoard->board[row][col] == 0) {
-			checkAround(gameBoard, row, col, 1);
-		}
-		if(--clean <= 0) {
+int firstTurn(int mines) {
+	printBoard();
+	while(choice != 1) {
+		choice = moveCursor();
+		if(choice == 0) { 
 			return 0;
+		} else if(choice == 1) {
+			loc(cursY, cursX) = -4;
+			while(game->mines < mines) {
+				i = rand()%ROWS;
+				j = rand()%COLS;
+				if(loc(i, j) > -4) {
+					loc(i, j) = (loc(i, j) % 2) - 4;
+					game->mines++;
+				}
+			}
+			loc(cursY, cursX) = -2;
 		}
 	}
-	return 1;
+	return checkSpot(cursY, cursX);
 }
 
-void checkAround(board* gameBoard, int row, int col, int opt) {
-	int i, j;
-	for(i = row - 1; i <= row + 1; i++) {
-		if(i < 0) {
-			i = 0;
-		} else if(i == ROWS) {
-			break;
-		}
-		for(j = col - 1; j <= col + 1; j++) {
-			if(j < 0) {
-				j = 0;
-			} else if(j == COLS) {
-				break;
-			}
-			if(opt == 0 && gameBoard->board[i][j]/2 == -2) {
-				gameBoard->board[row][col]++;
-			} else if(opt == 1 && gameBoard-> board[i][j]/2 == -1) {
-				checkSpot(gameBoard, i, j);
-			}
-		}
+int takeTurn() {
+	printBoard();
+	choice = moveCursor();
+	if(choice == 0) {
+		return 0;
+	} else if(choice == 1) {
+		return checkSpot(cursY, cursX);
 	}
 }
 
-int moveCursor(board* gameBoard) {
+int moveCursor() {
 	int ch;
 	for(ch = getch(); ch != 'q'; ch = getch()) {
-		mvchgat(cursorY, cursorX, 3, A_NORMAL, (gameBoard->board[cursorY][cursorX/3] % 2 == -1 ? 3 : (gameBoard->board[cursorY][cursorX/3] < 0 ? 1 : 2)), NULL);
+		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
 		if(ch == 'c') {
 			return 1;
 		} else if(ch == 'f') {
-			return 2;
-		} else if(ch == KEY_LEFT && cursorX > 0) {
-			cursorX -= 3;
-		} else if(ch == KEY_RIGHT && cursorX < (COLS - 1)*3) {
-			cursorX += 3;
-		} else if(ch == KEY_UP && cursorY > 0) {
-			cursorY--;
-		} else if(ch == KEY_DOWN && cursorY < ROWS - 1) {
-			cursorY++;
+			if(loc(cursY, cursX)%2 == -1) {
+				loc(cursY, cursX)++;
+			} else if(loc(cursY, cursX) < 0) {
+				loc(cursY, cursX)--;
+			}
+			printBoard();
+		}  else if((ch == KEY_LEFT || ch == 'a') && cursX > 0) {
+			cursX--;
+		} else if((ch == KEY_RIGHT || ch == 'd') && cursX < COLS - 1) {
+			cursX++;
+		} else if((ch == KEY_UP || ch == 'w') && cursY > 0) {
+			cursY--;
+		} else if((ch == KEY_DOWN || ch == 's') && cursY < ROWS - 1) {
+			cursY++;
 		} 
-		mvchgat(cursorY, cursorX, 3, A_REVERSE, (gameBoard->board[cursorY][cursorX/3] % 2 == -1 ? 3 : (gameBoard->board[cursorY][cursorX/3] < 0 ? 1 : 2)), NULL);
+		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
 	}
 	return 0;
 }
 
-int takeTurn(board* gameBoard) {
-	printBoard(gameBoard);
-	choice = moveCursor(gameBoard);
-	if(choice == 0) {
-		return 0;
-	} else if(choice == 1) {
-		return checkSpot(gameBoard, cursorY, cursorX/3);
-	} else if(choice == 2) {
-		if(gameBoard->board[cursorY][cursorX/3]%2 == -1) {
-			gameBoard->board[cursorY][cursorX/3]++;
-		} else if(gameBoard->board[cursorY][cursorX/3] < 0) {
-			gameBoard->board[cursorY][cursorX/3]--;
-		}
+int checkSpot(int row, int col) {
+	if(loc(row,col)%2 == -1) {
 		return 1;
 	}
+	if(loc(row, col) <= -4) {
+		return 0;
+	}
+	if(loc(row, col) <= -2) {
+		loc(row, col) = checkAround(row, col, 0);
+		if(loc(row, col) == 0) {
+			checkAround(row, col, 1);
+		}
+		if(--clean <= 0) {
+			return 0;
+		}
+	} else if(loc(row, col) > 0 && loc(row, col) == checkAround(row, col, 2)) {
+		mvprintw(ROWS+1, 0, "HAI %d", loc(row,col));
+		getch();
+		return checkAround(row, col, 3);
+	}
+	return 1;
+}
+
+int checkAround(int row, int col, int opt) {
+	int y, x, total = 0;
+	for(y = row < 1 ? 0 : row - 1; y <= (row == ROWS - 1 ? ROWS - 1 : row + 1); y++) {
+		for(x = col < 1 ? 0 : col - 1; x <= (col == COLS - 1 ? COLS - 1 : col + 1); x++) {
+			if(opt == 0 && loc(y, x)/2 == -2) {
+				total++;
+			} else if(opt == 1 && loc(y, x)/2 == -1) {
+				checkSpot(y, x);
+			} else if(opt == 2 && loc(y, x)%2 == -1) {
+				total++;
+			} else if(opt == 3 && loc(y, x) < 0) {
+				total++;
+				if(checkSpot(y, x) == 0) {
+					return 0;
+				}
+			}
+		}
+	}
+	return total;
+}
+
+void mvatprintw(int y, int x, int attr, const char* msg) {
+	attron(attr);
+	mvprintw(y, x, msg);
+	attroff(attr);
 }
