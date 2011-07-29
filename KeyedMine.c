@@ -101,7 +101,7 @@ void printBoard() {
 
 int firstTurn() {
 	moveCursor();
-	loc(cursY, cursX) = -4;
+	loc(cursY, cursX) -= 2;
 	while(game->mines > 0) {
 		i = rand()%ROWS;
 		j = rand()%COLS;
@@ -110,7 +110,7 @@ int firstTurn() {
 			game->mines--;
 		}
 	}
-	loc(cursY, cursX) = -2;
+	loc(cursY, cursX) += 2;
 	return checkSpot(cursY, cursX);
 }
 
