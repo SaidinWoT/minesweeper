@@ -7,25 +7,39 @@
 #include <time.h>
 #define ROWS 9 
 #define COLS 9
-#define loc(y,x) game->board[y][x]
+#define loc(y,x) game->board[y][x]		// Less typing
 
+/*
+ *	board struct
+ *	Tracks values of each square as well as total number of mines
+ *	Squares each maintain a single integer value to indicate their state:
+ *	A value of...
+ *		0 or greater indicates a checked spot with that number of
+ *		mines in the adjacent squares
+ *		
+ *		-2 indicates an unflagged, unchecked, empty spot
+ *
+ *		-3 indicates a flagged, unchecked, empty spot
+ *
+ *		-4 indicates an unflagged, unchecked spot containing a mine
+ *
+ *		-5 indicates a flagged, unchecked spot containing a mine
+ */
 typedef struct board {
 	int board[ROWS][COLS];
 	int mines;
 } board;
 
-int mines = 10;
-int cursY, cursX, choice, clean, i, j;
+int cursY, cursX, clean, i, j;
 board* game;
 
 board* createBoard();
 void printBoard();
-int firstTurn(int mines);
+int firstTurn();
 int takeTurn();
-int moveCursor();
 int checkSpot(int row, int col);
 int checkAround(int row, int col, int opt);
-void flag();
+void moveCursor();
 void mvatprintw(int y, int x, int attr, const char* msg);
 
 int main() {
@@ -42,10 +56,10 @@ int main() {
 	curs_set(0);
 
 	srand(time(0));
-	clean = (ROWS * COLS) - mines;
 	game = createBoard();
+	clean = (ROWS * COLS) - game->mines;
 
-	if(firstTurn(mines)) {
+	if(firstTurn()) {
 		while(takeTurn()) {}
 	}
 
@@ -62,7 +76,7 @@ board* createBoard() {
 	for(i = 0; i < ROWS * COLS; i++) {
 		newBoard->board[i/COLS][i%COLS] = -2;
 	}
-	newBoard->mines = 0;
+	newBoard->mines = 10;
 	return newBoard;
 }
 
@@ -82,66 +96,27 @@ void printBoard() {
 			}
 		}
 	}
-	mvchgat(cursY, cursX*3, 3, A_REVERSE, NULL, NULL);
+	mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
 }
 
-int firstTurn(int mines) {
-	printBoard();
-	while(choice != 1) {
-		choice = moveCursor();
-		if(choice == 0) { 
-			return 0;
-		} else if(choice == 1) {
-			loc(cursY, cursX) = -4;
-			while(game->mines < mines) {
-				i = rand()%ROWS;
-				j = rand()%COLS;
-				if(loc(i, j) > -4) {
-					loc(i, j) = (loc(i, j) % 2) - 4;
-					game->mines++;
-				}
-			}
-			loc(cursY, cursX) = -2;
+int firstTurn() {
+	moveCursor();
+	loc(cursY, cursX) = -4;
+	while(game->mines > 0) {
+		i = rand()%ROWS;
+		j = rand()%COLS;
+		if(loc(i, j) > -4) {
+			loc(i, j) = (loc(i, j) % 2) - 4;
+			game->mines--;
 		}
 	}
+	loc(cursY, cursX) = -2;
 	return checkSpot(cursY, cursX);
 }
 
 int takeTurn() {
-	printBoard();
-	choice = moveCursor();
-	if(choice == 0) {
-		return 0;
-	} else if(choice == 1) {
-		return checkSpot(cursY, cursX);
-	}
-}
-
-int moveCursor() {
-	int ch;
-	for(ch = getch(); ch != 'q'; ch = getch()) {
-		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
-		if(ch == 'c') {
-			return 1;
-		} else if(ch == 'f') {
-			if(loc(cursY, cursX)%2 == -1) {
-				loc(cursY, cursX)++;
-			} else if(loc(cursY, cursX) < 0) {
-				loc(cursY, cursX)--;
-			}
-			printBoard();
-		}  else if((ch == KEY_LEFT || ch == 'a') && cursX > 0) {
-			cursX--;
-		} else if((ch == KEY_RIGHT || ch == 'd') && cursX < COLS - 1) {
-			cursX++;
-		} else if((ch == KEY_UP || ch == 'w') && cursY > 0) {
-			cursY--;
-		} else if((ch == KEY_DOWN || ch == 's') && cursY < ROWS - 1) {
-			cursY++;
-		} 
-		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
-	}
-	return 0;
+	moveCursor();
+	return checkSpot(cursY, cursX);
 }
 
 int checkSpot(int row, int col) {
@@ -160,8 +135,6 @@ int checkSpot(int row, int col) {
 			return 0;
 		}
 	} else if(loc(row, col) > 0 && loc(row, col) == checkAround(row, col, 2)) {
-		mvprintw(ROWS+1, 0, "HAI %d", loc(row,col));
-		getch();
 		return checkAround(row, col, 3);
 	}
 	return 1;
@@ -188,6 +161,37 @@ int checkAround(int row, int col, int opt) {
 	return total;
 }
 
+void moveCursor() {
+	printBoard();
+	int ch;
+	for(ch = getch(); ch != 'c'; ch = getch()) {
+		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
+		if(ch == 'q') {
+			endwin();
+			exit(0);
+		} else if(ch == 'f') {
+			if(loc(cursY, cursX)%2 == -1) {
+				loc(cursY, cursX)++;
+			} else if(loc(cursY, cursX) < 0) {
+				loc(cursY, cursX)--;
+			}
+			printBoard();
+		} else if((ch == 'a' || ch == KEY_LEFT) && cursX > 0) {
+			cursX--;
+		} else if((ch == 'd' || ch == KEY_RIGHT) && cursX < COLS - 1) {
+			cursX++;
+		} else if((ch == 'w' || ch == KEY_UP) && cursY > 0) {
+			cursY--;
+		} else if((ch == 's' || ch == KEY_DOWN) && cursY < COLS - 1) {
+			cursY++;
+		}
+		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
+	}
+}
+
+/*
+ *	Turn an attribute on, call mvprintw, and turn the attribute back off
+ */
 void mvatprintw(int y, int x, int attr, const char* msg) {
 	attron(attr);
 	mvprintw(y, x, msg);
