@@ -43,6 +43,7 @@ int main() {
 	clean = (ROWS * COLS) - mines;
 	clear();
 	
+	getch();
 	if(firstTurn()) {
 		while(takeTurn()) {}
 	}
@@ -148,24 +149,23 @@ int checkAround(int row, int col, int opt) {
 
 void pickSpot() {
 	printBoard();
-	int ch;
-	for(ch = eolprintw(ROWS+2, 0, "(c)heck, (f)lag, or (q)uit? ") + 48; ch != 'c'; ch = eolprintw(ROWS+2, 0, "(c)heck, (f)lag, or (q)uit? ") + 48) {
-		if(ch == 'q') {
-			endwin();
-			exit(0);
-		} else if(ch == 'f') {
-			r = eolprintw(ROWS+2, 0, "Select a row to flag: ");
-			c = eolprintw(ROWS+2, 0, "Select a column to flag: ");
-			if(loc(r, c) % 2 == -1) {
-				loc(r, c)++;
-			} else {
-				loc(r, c)--;
-			}
-			printBoard();
-		}
-	}
 	r = eolprintw(ROWS+2, 0, "Select a row to check: ");
-	c = eolprintw(ROWS+2, 0, "Select a column to check: ");
+	if(r != 51 && r != 54) {
+		c = eolprintw(ROWS+2, 0, "Select a column to check: ");
+	}
+}
+
+void flag() {
+	r = eolprintw(ROWS+2, 0, "Select a row to flag: ");
+	if(r != 51 && r != 54) {
+		c = eolprintw(ROWS+2, 0, "Select a column to flag: ");
+	}
+	if(loc(r, c) % 2 == -1) {
+		loc(r, c)++;
+	} else {
+		loc(r, c)--;
+	}
+	printBoard();
 }
 
 int eolprintw(int y, int x, const char* msg) {
@@ -173,5 +173,14 @@ int eolprintw(int y, int x, const char* msg) {
 	clrtoeol();
 	printw(msg);
 	refresh();
-	return getch() - 48;
+	int ch = getch();
+	if(ch == 'q') {
+		endwin();
+		exit(0);
+	} else if(ch == 'f') {
+		flag();
+	} else if(ch == 'c') {
+		takeTurn();
+	}
+	return ch - 48;
 }
