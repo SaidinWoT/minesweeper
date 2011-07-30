@@ -23,8 +23,7 @@ int firstTurn();
 int takeTurn();
 int checkSpot(int row, int col);
 int checkAround(int row, int col, int opt);
-void pickSpot();
-int eolprintw(int y, int x, const char* msg);
+int eolprintw(const char* msg, int opt);
 
 int main() {
 	initscr();
@@ -39,18 +38,17 @@ int main() {
 
 	srand(time(0));
 	game = createBoard();
-	mines = eolprintw(0, 0, "How many mines would you like? ");
+	printBoard();
+	mines = eolprintw("How many mines would you like? ", 0);
 	clean = (ROWS * COLS) - mines;
-	clear();
 	
-	getch();
 	if(firstTurn()) {
 		while(takeTurn()) {}
 	}
 	
 	printBoard();
 	attron(COLOR_PAIR(1) | A_BOLD);
-	eolprintw(ROWS+2, 0, clean > 0 ?  "LOL YOU FAILED!" : "EPIC WINZ!");
+	eolprintw(clean > 0 ?  "LOL YOU FAILED!" : "EPIC WINZ!", 0);
 	attroff(COLOR_PAIR(1) | A_BOLD);
 	endwin();
 
@@ -88,7 +86,11 @@ void printBoard() {
 }
 
 int firstTurn() {
-	pickSpot();
+	printBoard();
+	r = eolprintw("Select a row to check: ", 1);
+	if(r != 51 && r != 54) {
+		c = eolprintw("Select a column to check: ", 1);
+	}
 	loc(r, c) -= 2;
 	while(game->mines < mines) {
 		i = rand()%ROWS;
@@ -103,7 +105,11 @@ int firstTurn() {
 }
 
 int takeTurn() {
-	pickSpot();
+	printBoard();
+	r = eolprintw("Select a row to check: ", 1);
+	if(r != 51 && r != 54) {
+		c = eolprintw("Select a column to check: ", 1);
+	}
 	return checkSpot(r, c);
 }
 
@@ -147,40 +153,30 @@ int checkAround(int row, int col, int opt) {
 	return total;
 }
 
-void pickSpot() {
-	printBoard();
-	r = eolprintw(ROWS+2, 0, "Select a row to check: ");
-	if(r != 51 && r != 54) {
-		c = eolprintw(ROWS+2, 0, "Select a column to check: ");
-	}
-}
-
-void flag() {
-	r = eolprintw(ROWS+2, 0, "Select a row to flag: ");
-	if(r != 51 && r != 54) {
-		c = eolprintw(ROWS+2, 0, "Select a column to flag: ");
-	}
-	if(loc(r, c) % 2 == -1) {
-		loc(r, c)++;
-	} else {
-		loc(r, c)--;
-	}
-	printBoard();
-}
-
-int eolprintw(int y, int x, const char* msg) {
-	move(y, x);
+int eolprintw(const char* msg, int opt) {
+	move(ROWS+2, 0);
 	clrtoeol();
 	printw(msg);
 	refresh();
 	int ch = getch();
-	if(ch == 'q') {
-		endwin();
-		exit(0);
-	} else if(ch == 'f') {
-		flag();
-	} else if(ch == 'c') {
-		takeTurn();
+	if(opt == 1) {
+		if(ch == 'q') {
+			endwin();
+			exit(0);
+		} else if(ch == 'f') {
+			r = eolprintw("Select a row to flag: ", 1);
+			if(r != 51 && r != 54) {
+				c = eolprintw("Select a column to flag: ", 1);
+			}
+			if(loc(r, c) % 2 == -1) {
+				loc(r, c)++;
+			} else {
+				loc(r, c)--;
+			}
+			printBoard();
+		} else if(ch == 'c') {
+			takeTurn();
+		}
 	}
 	return ch - 48;
 }
