@@ -5,48 +5,51 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>
-#define ROWS 10 
+#define ROWS 10
 #define COLS 10
+#define loc(y,x) game->board[y][x]
 
 typedef struct board {
 	int board[ROWS][COLS];
 	int mines;
 } board;
 
-board* createBoard();
-void populate(board* gameBoard, int mines);
-void printBoard(board* gameBoard);
-int checkSpot(board* gameBoard, int r, int c);
-void checkAround(board* gameBoard, int r, int c, int opt);
-int firstTurn(board* gameBoard, int mines);
-int takeTurn(board* gameBoard);
-int eolprintw(int y, int x, const char* msg);
+int mines, clean, i, j, r, c;
+board* game;
 
-int mines, clean, row, col;
+board* createBoard();
+void printBoard();
+int firstTurn();
+int takeTurn();
+int checkSpot(int row, int col);
+int checkAround(int row, int col, int opt);
+void pickSpot();
+int eolprintw(int y, int x, const char* msg);
 
 int main() {
 	initscr();
 	if(has_colors() == TRUE) {
 		start_color();
-		init_pair(1, COLOR_WHITE, COLOR_BLUE);
-		init_pair(2, COLOR_BLACK, COLOR_CYAN);
+		init_pair(1, COLOR_BLACK, COLOR_YELLOW);
+		init_pair(2, COLOR_WHITE, COLOR_BLUE);
+		init_pair(3, COLOR_BLACK, COLOR_CYAN);
 	}
 	noecho();
 	cbreak();
 
 	srand(time(0));
-	board* game = createBoard();
+	game = createBoard();
 	mines = eolprintw(0, 0, "How many mines would you like? ");
 	clean = (ROWS * COLS) - mines;
 	clear();
-
-	if(firstTurn(game, mines)) {
-		while(takeTurn(game)) {}
+	
+	if(firstTurn()) {
+		while(takeTurn()) {}
 	}
 	
-	printBoard(game);
+	printBoard();
 	attron(COLOR_PAIR(1) | A_BOLD);
-	clean > 0 ? eolprintw(ROWS+2, 0, "LOL YOU FAILED!") : eolprintw(ROWS+2, 0, "EPIC WINZ!");
+	eolprintw(ROWS+2, 0, clean > 0 ?  "LOL YOU FAILED!" : "EPIC WINZ!");
 	attroff(COLOR_PAIR(1) | A_BOLD);
 	endwin();
 
@@ -55,107 +58,114 @@ int main() {
 
 board* createBoard() {
 	board* newBoard = (board*)malloc(sizeof(board));
-	int i;
 	for(i = 0; i < ROWS * COLS; i++) {
-		newBoard->board[i/COLS][i%COLS] = -1;
+		newBoard->board[i/COLS][i%COLS] = -2;
 	}
 	newBoard->mines = 0;
 	return newBoard;
 }
 
-int firstTurn(board* gameBoard, int mines) {
-	printBoard(gameBoard);
-	row = eolprintw(ROWS+2, 0, "Select a row to check: ");
-	col = eolprintw(ROWS+2, 0, "Select a column to check: ");
-	gameBoard->board[row][col] = -2;
-	populate(gameBoard, mines);
-	gameBoard->board[row][col] = -1;
-	return checkSpot(gameBoard, row, col);
-}
-
-void populate(board* gameBoard, int mines) {
-	int posR, posC;
-	while(gameBoard->mines < mines) {
-		posR = rand()%ROWS;
-		posC = rand()%COLS;
-		if(gameBoard->board[posR][posC] != -2) {
-			gameBoard->board[posR][posC] = -2;
-			gameBoard->mines++;
-		}
-	}
-}
-
-void printBoard(board* gameBoard) {
-	int i, j;
+void printBoard() {
 	for(j = 0; j < COLS; j++) {
 		mvprintw(0, 3*(j+1), "%2d", j);
 	}
 	for(i = 0; i < ROWS; i++) {
 		mvprintw(i+1, 0, "%2d", i);
 		for(j = 0; j < COLS; j++) {
-			if(gameBoard->board[i][j] < 0) {
-				attron(COLOR_PAIR(1));
-				mvprintw(i+1, 3*(j+1), "[*]");
-				attroff(COLOR_PAIR(1));
-			} else if(gameBoard->board[i][j] == 0) {
-				attron(COLOR_PAIR(2));
-				mvprintw(i+1, 3*(j+1), "   ");
-				attroff(COLOR_PAIR(2));
+			if(loc(i, j) > 0) {
+				attron(COLOR_PAIR(3));
+				mvprintw(i+1, 3*(j+1), "[%d]", loc(i, j));
+				attroff(COLOR_PAIR(3));
 			} else {
-				attron(COLOR_PAIR(2));
-				mvprintw(i+1, 3*(j+1), "[%d]", gameBoard->board[i][j]);
-				attroff(COLOR_PAIR(2));
+				attron(COLOR_PAIR(loc(i, j) % 2 == -1 ? 1 : (loc(i, j) < 0 ? 2 : 3)));
+				mvprintw(i+1, 3*(j+1), loc(i, j) % 2 == -1 ? "[F]" : (loc(i, j) < 0 ? "[*]" : "   "));
+				attroff(COLOR_PAIR(loc(i, j) % 2 == -1 ? 1 : (loc(i, j) < 0 ? 2 : 3)));
 			}
 		}
 	}
 	refresh();
 }
 
-int checkSpot(board* gameBoard, int r, int c) {
-	if(gameBoard->board[r][c] == -2) {
-		return 0;
+int firstTurn() {
+	pickSpot();
+	loc(r, c) -= 2;
+	while(game->mines < mines) {
+		i = rand()%ROWS;
+		j = rand()%COLS;
+		if(loc(i, j) > -4) {
+			loc(i, j) = (loc(i, j) % 2) - 4;
+			game->mines++;
+		}
 	}
-	if(gameBoard->board[r][c] == -1) {
-		gameBoard->board[r][c] = 0;
-		checkAround(gameBoard, r, c, 0);
-		if(gameBoard->board[r][c] == 0) {
-			checkAround(gameBoard, r, c, 1);
+	loc(r, c) += 2;
+	return checkSpot(r, c);
+}
+
+int takeTurn() {
+	pickSpot();
+	return checkSpot(r, c);
+}
+
+int checkSpot(int row, int col) {
+	if(loc(row, col) % 2 == -1) {
+		return 1;
+	} else if(loc(row, col) == -4) {
+		return 0;
+	} else if(loc(row, col) == -2) {
+		loc(row, col) = checkAround(row, col, 0);
+		if(loc(row, col) == 0) {
+			checkAround(row, col, 1);
 		}
 		if(--clean <= 0) {
 			return 0;
 		}
+	} else if(loc(row, col) > 0 && loc(row, col) == checkAround(row, col, 2)) {
+		return checkAround(row, col, 3);
 	}
 	return 1;
 }
 
-void checkAround(board* gameBoard, int r, int c, int opt) {
-	int i, j;
-	for(i = r - 1; i <= r + 1; i++) {
-		if(i < 0) {
-			i = 0;
-		} else if(i == ROWS) {
-			break;
-		}
-		for(j = c - 1; j <= c + 1; j++) {
-			if(j < 0) {
-				j = 0;
-			} else if(j == COLS) {
-				break;
-			}
-			if(opt == 0 && gameBoard->board[i][j] == -2) {
-				gameBoard->board[r][c]++;
-			} else if(opt == 1 && gameBoard->board[i][j] == -1) {
-				checkSpot(gameBoard, i, j);
+int checkAround(int row, int col, int opt) {
+	int y, x, total = 0;
+	for(y = row < 1 ? 0 : row - 1; y <= (row == ROWS - 1 ? ROWS - 1 : row + 1); y++) {
+		for(x = col < 1 ? 0 : col - 1; x <= (col == COLS - 1 ? COLS - 1 : col + 1); x++) {
+			if(opt == 0 && loc(y, x) / 2 == -2) {
+				total++;
+			} else if(opt == 1 && loc(y, x) / 2 == -1) {
+				checkSpot(y, x);
+			} else if(opt == 2 && loc(y, x) % 2 == -1) {
+				total++;
+			} else if(opt == 3 && loc(y, x) < 0) {
+				total++;
+				if(checkSpot(y, x) == 0) {
+					return 0;
+				}
 			}
 		}
 	}
+	return total;
 }
 
-int takeTurn(board* gameBoard) {
-	printBoard(gameBoard);
-	row = eolprintw(ROWS+2, 0, "Select a row to check: ");
-	col = eolprintw(ROWS+2, 0, "Select a column to check: ");
-	return checkSpot(gameBoard, row, col);
+void pickSpot() {
+	printBoard();
+	int ch;
+	for(ch = eolprintw(ROWS+2, 0, "(c)heck, (f)lag, or (q)uit? ") + 48; ch != 'c'; ch = eolprintw(ROWS+2, 0, "(c)heck, (f)lag, or (q)uit? ") + 48) {
+		if(ch == 'q') {
+			endwin();
+			exit(0);
+		} else if(ch == 'f') {
+			r = eolprintw(ROWS+2, 0, "Select a row to flag: ");
+			c = eolprintw(ROWS+2, 0, "Select a column to flag: ");
+			if(loc(r, c) % 2 == -1) {
+				loc(r, c)++;
+			} else {
+				loc(r, c)--;
+			}
+			printBoard();
+		}
+	}
+	r = eolprintw(ROWS+2, 0, "Select a row to check: ");
+	c = eolprintw(ROWS+2, 0, "Select a column to check: ");
 }
 
 int eolprintw(int y, int x, const char* msg) {
