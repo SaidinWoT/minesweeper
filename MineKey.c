@@ -5,8 +5,8 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>
-#define ROWS 9 
-#define COLS 9
+#define ROWS 10 
+#define COLS 10
 #define loc(y,x) game->board[y][x]		// Less typing
 
 /*
@@ -46,9 +46,9 @@ int main() {
 	initscr();
 	if(has_colors() == TRUE) {
 		start_color();
-		init_pair(1, COLOR_WHITE, COLOR_BLUE);
-		init_pair(2, COLOR_BLACK, COLOR_CYAN);
-		init_pair(3, COLOR_BLACK, COLOR_YELLOW);
+		init_pair(1, COLOR_BLACK, COLOR_YELLOW);
+		init_pair(2, COLOR_WHITE, COLOR_BLUE);
+		init_pair(3, COLOR_BLACK, COLOR_CYAN);
 	}
 	noecho();
 	cbreak();
@@ -83,20 +83,16 @@ board* createBoard() {
 void printBoard() {
 	for(i = 0; i < ROWS; i++) {
 		for(j = 0; j < COLS; j++) {
-			if(loc(i, j)%2 == -1) {
-				mvatprintw(i, 3*j, COLOR_PAIR(3), "[F]");
-			} else if(loc(i, j) < 0) {
-				mvatprintw(i, 3*j, COLOR_PAIR(1), "[*]");
-			} else if(loc(i, j) == 0) {
-				mvatprintw(i, 3*j, COLOR_PAIR(2), "   ");
-			} else {
-				attron(COLOR_PAIR(2));
+			if(loc(i, j) > 0) {
+				attron(COLOR_PAIR(3));
 				mvprintw(i, 3*j, "[%d]", loc(i, j));
-				attroff(COLOR_PAIR(2));
+				attroff(COLOR_PAIR(3));
+			} else {
+				mvatprintw(i, 3*j, COLOR_PAIR(loc(i, j) % 2 == -1 ? 1 : (loc(i, j) < 0 ? 2 : 3)), loc(i, j) % 2 == -1 ? "[F]" : (loc(i, j) < 0 ? "[*]" : "   "));
 			}
 		}
 	}
-	mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
+	mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
 }
 
 int firstTurn() {
@@ -120,13 +116,11 @@ int takeTurn() {
 }
 
 int checkSpot(int row, int col) {
-	if(loc(row,col)%2 == -1) {
+	if(loc(row, col) % 2 == -1) {
 		return 1;
-	}
-	if(loc(row, col) <= -4) {
+	} else if(loc(row, col) == -4) {
 		return 0;
-	}
-	if(loc(row, col) <= -2) {
+	} else if(loc(row, col) == -2) {
 		loc(row, col) = checkAround(row, col, 0);
 		if(loc(row, col) == 0) {
 			checkAround(row, col, 1);
@@ -144,11 +138,11 @@ int checkAround(int row, int col, int opt) {
 	int y, x, total = 0;
 	for(y = row < 1 ? 0 : row - 1; y <= (row == ROWS - 1 ? ROWS - 1 : row + 1); y++) {
 		for(x = col < 1 ? 0 : col - 1; x <= (col == COLS - 1 ? COLS - 1 : col + 1); x++) {
-			if(opt == 0 && loc(y, x)/2 == -2) {
+			if(opt == 0 && loc(y, x) / 2 == -2) {
 				total++;
-			} else if(opt == 1 && loc(y, x)/2 == -1) {
+			} else if(opt == 1 && loc(y, x) / 2 == -1) {
 				checkSpot(y, x);
-			} else if(opt == 2 && loc(y, x)%2 == -1) {
+			} else if(opt == 2 && loc(y, x) % 2 == -1) {
 				total++;
 			} else if(opt == 3 && loc(y, x) < 0) {
 				total++;
@@ -165,12 +159,12 @@ void moveCursor() {
 	printBoard();
 	int ch;
 	for(ch = getch(); ch != 'c'; ch = getch()) {
-		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
+		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
 		if(ch == 'q') {
 			endwin();
 			exit(0);
 		} else if(ch == 'f') {
-			if(loc(cursY, cursX)%2 == -1) {
+			if(loc(cursY, cursX) % 2 == -1) {
 				loc(cursY, cursX)++;
 			} else if(loc(cursY, cursX) < 0) {
 				loc(cursY, cursX)--;
@@ -185,7 +179,7 @@ void moveCursor() {
 		} else if((ch == 's' || ch == KEY_DOWN) && cursY < COLS - 1) {
 			cursY++;
 		}
-		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 3 : (loc(cursY, cursX) < 0 ? 1 : 2)), NULL);
+		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
 	}
 }
 

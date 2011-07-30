@@ -14,11 +14,11 @@ typedef struct board {
 } board;
 
 board* createBoard();
-void populate(board* gameBoard, int mines);
-void printBoard(board* gameBoard);
-int checkSpot(board* gameBoard, int row, int col);
-void firstTurn(board* gameBoard, int mines);
-int takeTurn(board* gameBoard);
+void populate(board* game, int mines);
+void printBoard(board* game);
+int checkSpot(board* game, int row, int col);
+void firstTurn(board* game, int mines);
+int takeTurn(board* game);
 
 int mines, clean;
 
@@ -49,31 +49,31 @@ board* createBoard() {
 	return newBoard;
 }
 
-void firstTurn(board* gameBoard, int mines) {
+void firstTurn(board* game, int mines) {
 	int row, col;
-	printBoard(gameBoard);
+	printBoard(game);
 	printf("Select a row to check: ");
 	scanf("%d", &row);
 	printf("Select a column to check: ");
 	scanf("%d", &col);
-	gameBoard->board[row][col] = -2;
-	populate(gameBoard, mines);
-	gameBoard->board[row][col] = -1;
-	checkSpot(gameBoard, row, col);
+	game->board[row][col] = -2;
+	populate(game, mines);
+	game->board[row][col] = -1;
+	checkSpot(game, row, col);
 }
 
-void populate(board* gameBoard, int mines) {
-	while(gameBoard->mines < mines) {
+void populate(board* game, int mines) {
+	while(game->mines < mines) {
 		int posR = rand()%ROWS;
 		int posC = rand()%COLS;
-		if(gameBoard->board[posR][posC] != -2) {
-			gameBoard->board[posR][posC] = -2;
-			gameBoard->mines++;
+		if(game->board[posR][posC] != -2) {
+			game->board[posR][posC] = -2;
+			game->mines++;
 		}
 	}
 }
 
-void printBoard(board* gameBoard) {
+void printBoard(board* game) {
 	int i, j;
 	printf("   ");
 	for(j = 0; j < COLS; j++) {
@@ -83,24 +83,24 @@ void printBoard(board* gameBoard) {
 	for(i = 0; i < ROWS; i++) {
 		printf("%2d ", i);
 		for(j = 0; j < COLS; j++) {
-			if(gameBoard->board[i][j] < 0) {
+			if(game->board[i][j] < 0) {
 				printf("[*]");
-			} else if(gameBoard->board[i][j] == 0) {
+			} else if(game->board[i][j] == 0) {
 				printf("   ");
 			} else {
-				printf("[%d]", gameBoard->board[i][j]);
+				printf("[%d]", game->board[i][j]);
 			}
 		}
 		printf("\n");
 	}
 }
 
-int checkSpot(board* gameBoard, int row, int col) {
-	if(gameBoard->board[row][col] == -2) {
+int checkSpot(board* game, int row, int col) {
+	if(game->board[row][col] == -2) {
 		return 0;
 	}
-	if(gameBoard->board[row][col] == -1) {
-		gameBoard->board[row][col] = 0;
+	if(game->board[row][col] == -1) {
+		game->board[row][col] = 0;
 		int i, j;
 		for(i = (row - 1); i <= (row + 1); i++) {
 			if(i < 0) {
@@ -114,12 +114,12 @@ int checkSpot(board* gameBoard, int row, int col) {
 				} else if(j == COLS) {
 					break;
 				}
-				if(gameBoard->board[i][j] == -2) {
-					gameBoard->board[row][col]++;
+				if(game->board[i][j] == -2) {
+					game->board[row][col]++;
 				}
 			}
 		}
-		if(gameBoard->board[row][col] == 0) {
+		if(game->board[row][col] == 0) {
 			for(i = row - 1; i <= row + 1; i++) {
 				if(i < 0) {
 					i = 0;
@@ -132,8 +132,8 @@ int checkSpot(board* gameBoard, int row, int col) {
 					} else if(j == COLS) {
 						break;
 					}
-					if(gameBoard->board[i][j] == -1) {
-						checkSpot(gameBoard, i, j);	
+					if(game->board[i][j] == -1) {
+						checkSpot(game, i, j);	
 					}
 				}
 			}
@@ -146,17 +146,17 @@ int checkSpot(board* gameBoard, int row, int col) {
 	return 1;
 }
 
-int takeTurn(board* gameBoard) {
+int takeTurn(board* game) {
 	int row, col;
-	printBoard(gameBoard);
+	printBoard(game);
 	printf("Select a row to check: ");
 	scanf("%d", &row);
 	printf("Select a column to check: ");
 	scanf("%d", &col);
-	if(checkSpot(gameBoard, row, col)) {
+	if(checkSpot(game, row, col)) {
 		return 1;
 	} else {
-		printBoard(gameBoard);
+		printBoard(game);
 		return 0;
 	}
 }
