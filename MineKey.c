@@ -35,7 +35,6 @@ board* game;
 
 board* createBoard();
 void printBoard();
-int firstTurn();
 int takeTurn();
 int checkSpot(int row, int col);
 int checkAround(int row, int col, int opt);
@@ -50,24 +49,31 @@ int main() {
 		init_pair(2, COLOR_WHITE, COLOR_BLUE);
 		init_pair(3, COLOR_BLACK, COLOR_CYAN);
 	}
-	noecho();
 	cbreak();
 	keypad(stdscr, TRUE);
 	curs_set(0);
 
 	srand(time(0));
 	game = createBoard();
+	printBoard();
+	do {
+		mvprintw(ROWS + 1, 0, "How many mines would you like? ");
+		clrtoeol();
+		scanw("%d", &game->mines);
+	} while(game->mines < 1 || game->mines > 99);
+	//} while(game->mines < (ROWS * COLS * 0.075) || game->mines > (ROWS - 1) * (COLS - 1));
+	clear();
 	clean = (ROWS * COLS) - game->mines;
+	noecho();
 
-	if(firstTurn()) {
-		while(takeTurn()) {}
-	}
+	while(takeTurn()) {}
 
 	printBoard();
-	mvatprintw(ROWS, 0, COLOR_PAIR(1) | A_BOLD, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
+	mvatprintw(ROWS + 1, 0, COLOR_PAIR(1) | A_BOLD, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
 	getch();
 	endwin();
 
+	free(game);
 	return 0;
 }
 
@@ -76,7 +82,7 @@ board* createBoard() {
 	for(i = 0; i < ROWS * COLS; i++) {
 		newBoard->board[i/COLS][i%COLS] = -2;
 	}
-	newBoard->mines = 10;
+	newBoard->mines = 0;
 	return newBoard;
 }
 
@@ -95,23 +101,20 @@ void printBoard() {
 	mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
 }
 
-int firstTurn() {
-	moveCursor();
-	loc(cursY, cursX) -= 2;
-	while(game->mines > 0) {
-		i = rand()%ROWS;
-		j = rand()%COLS;
-		if(loc(i, j) > -4) {
-			loc(i, j) = (loc(i, j) % 2) - 4;
-			game->mines--;
-		}
-	}
-	loc(cursY, cursX) += 2;
-	return checkSpot(cursY, cursX);
-}
-
 int takeTurn() {
 	moveCursor();
+	if(game->mines > 0) {
+		loc(cursY, cursX) -= 2;
+		while(game->mines > 0) {
+			i = rand()%ROWS;
+			j = rand()%COLS;
+			if(loc(i, j) > -4) {
+				loc(i, j) = (loc(i, j) % 2) - 4;
+				game->mines--;
+			}
+		}
+		loc(cursY, cursX) += 2;
+	}
 	return checkSpot(cursY, cursX);
 }
 
