@@ -59,8 +59,8 @@ int main() {
 	do {
 		mvprintw(ROWS + 1, 0, "How many mines would you like? ");
 		clrtoeol();
-		scanw("%d", &game->mines);
-	} while(game->mines < 1 || game->mines > 99);
+		scanw("%2d", &game->mines);
+	} while(game->mines < 1);
 	//} while(game->mines < (ROWS * COLS * 0.075) || game->mines > (ROWS - 1) * (COLS - 1));
 	clear();
 	clean = (ROWS * COLS) - game->mines;
@@ -119,18 +119,14 @@ int takeTurn() {
 }
 
 int checkSpot(int row, int col) {
-	if(loc(row, col) % 2 == -1) {
-		return 1;
-	} else if(loc(row, col) == -4) {
+	if(loc(row, col) == -4) {
 		return 0;
 	} else if(loc(row, col) == -2) {
 		loc(row, col) = checkAround(row, col, 0);
 		if(loc(row, col) == 0) {
 			checkAround(row, col, 1);
 		}
-		if(--clean <= 0) {
-			return 0;
-		}
+		return --clean;
 	} else if(loc(row, col) > 0 && loc(row, col) == checkAround(row, col, 2)) {
 		return checkAround(row, col, 3);
 	}
@@ -160,27 +156,45 @@ int checkAround(int row, int col, int opt) {
 
 void moveCursor() {
 	printBoard();
-	int ch;
+	static int ch;
 	for(ch = getch(); ch != 'c'; ch = getch()) {
 		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
-		if(ch == 'q') {
-			endwin();
-			exit(0);
-		} else if(ch == 'f') {
-			if(loc(cursY, cursX) % 2 == -1) {
-				loc(cursY, cursX)++;
-			} else if(loc(cursY, cursX) < 0) {
-				loc(cursY, cursX)--;
-			}
-			printBoard();
-		} else if((ch == 'a' || ch == KEY_LEFT) && cursX > 0) {
-			cursX--;
-		} else if((ch == 'd' || ch == KEY_RIGHT) && cursX < COLS - 1) {
-			cursX++;
-		} else if((ch == 'w' || ch == KEY_UP) && cursY > 0) {
-			cursY--;
-		} else if((ch == 's' || ch == KEY_DOWN) && cursY < COLS - 1) {
-			cursY++;
+		switch(ch) {
+			case 'w':
+			case KEY_UP:
+				if(cursY > 0) {
+					cursY--;
+				}
+				break;
+			case 'a':
+			case KEY_LEFT:
+				if(cursX > 0) {
+					cursX--;
+				}
+				break;
+			case 's':
+			case KEY_DOWN:
+				if(cursY < COLS - 1) {
+					cursY++;
+				}
+				break;
+			case 'd':
+			case KEY_RIGHT:
+				if(cursX < ROWS - 1) {
+					cursX++;
+				}
+				break;
+			case 'f':
+				if(loc(cursY, cursX) % 2 == -1) {
+					loc(cursY, cursX)++;
+				} else if(loc(cursY, cursX) < 0) {
+					loc(cursY, cursX)--;
+				}
+				printBoard();
+				break;
+			case 'q':
+				endwin();
+				exit(0);
 		}
 		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
 	}
