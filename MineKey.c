@@ -7,11 +7,11 @@
 #include <time.h>
 #define ROWS 10 
 #define COLS 10
-#define loc(y,x) game->board[y][x]		// Less typing
+#define pair(y,x) (game[y][x] % 2 == -1 ? 1 : (game[y][x] < 0 ? 2 : 3))
 
 /*
- *	board struct
- *	Tracks values of each square as well as total number of mines
+ *	game array
+ *	Tracks values of each square
  *	Squares each maintain a single integer value to indicate their state:
  *	A value of...
  *		0 or greater indicates a checked spot with that number of
@@ -25,15 +25,9 @@
  *
  *		-5 indicates a flagged, unchecked spot containing a mine
  */
-typedef struct board {
-	int board[ROWS][COLS];
-	int mines;
-} board;
+int game[ROWS][COLS];
+int cursY, cursX, clean, i, j, mines;
 
-int cursY, cursX, clean, i, j;
-board* game;
-
-board* createBoard();
 void printBoard();
 int takeTurn();
 int checkSpot(int row, int col);
@@ -54,16 +48,18 @@ int main() {
 	curs_set(0);
 
 	srand(time(0));
-	game = createBoard();
+	for(i = 0; i < ROWS * COLS; i++) {
+		game[i/COLS][i%COLS] = -2;
+	}
 	printBoard();
 	do {
 		mvprintw(ROWS + 1, 0, "How many mines would you like? ");
 		clrtoeol();
-		scanw("%2d", &game->mines);
-	} while(game->mines < 1);
-	//} while(game->mines < (ROWS * COLS * 0.075) || game->mines > (ROWS - 1) * (COLS - 1));
+		scanw("%2d", &mines);
+	} while(mines < 1);
+	//} while(mines < (ROWS * COLS * 0.075) || mines > (ROWS - 1) * (COLS - 1));
 	clear();
-	clean = (ROWS * COLS) - game->mines;
+	clean = (ROWS * COLS) - mines;
 	noecho();
 
 	while(takeTurn()) {}
@@ -73,61 +69,51 @@ int main() {
 	getch();
 	endwin();
 
-	free(game);
 	return 0;
-}
-
-board* createBoard() {
-	board* newBoard = (board*)malloc(sizeof(board));
-	for(i = 0; i < ROWS * COLS; i++) {
-		newBoard->board[i/COLS][i%COLS] = -2;
-	}
-	newBoard->mines = 0;
-	return newBoard;
 }
 
 void printBoard() {
 	for(i = 0; i < ROWS; i++) {
 		for(j = 0; j < COLS; j++) {
-			if(loc(i, j) > 0) {
+			if(game[i][j] > 0) {
 				attron(COLOR_PAIR(3));
-				mvprintw(i, 3*j, "[%d]", loc(i, j));
+				mvprintw(i, 3*j, "[%d]", game[i][j]);
 				attroff(COLOR_PAIR(3));
 			} else {
-				mvatprintw(i, 3*j, COLOR_PAIR(loc(i, j) % 2 == -1 ? 1 : (loc(i, j) < 0 ? 2 : 3)), loc(i, j) % 2 == -1 ? "[F]" : (loc(i, j) < 0 ? "[*]" : "   "));
+				mvatprintw(i, 3*j, COLOR_PAIR(pair(i, j)), game[i][j] % 2 == -1 ? "[F]" : (game[i][j] < 0 ? "[*]" : "   "));
 			}
 		}
 	}
-	mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
+	mvchgat(cursY, cursX*3, 3, A_REVERSE, pair(cursY, cursX) , NULL);
 }
 
 int takeTurn() {
 	moveCursor();
-	if(game->mines > 0) {
-		loc(cursY, cursX) -= 2;
-		while(game->mines > 0) {
+	if(mines > 0) {
+		game[cursX][cursY] -= 2;
+		while(mines > 0) {
 			i = rand()%ROWS;
 			j = rand()%COLS;
-			if(loc(i, j) > -4) {
-				loc(i, j) = (loc(i, j) % 2) - 4;
-				game->mines--;
+			if(game[i][j] > -4) {
+				game[i][j] = (game[i][j] % 2) - 4;
+				mines--;
 			}
 		}
-		loc(cursY, cursX) += 2;
+		game[cursY][cursX] += 2;
 	}
 	return checkSpot(cursY, cursX);
 }
 
 int checkSpot(int row, int col) {
-	if(loc(row, col) == -4) {
+	if(game[row][col] == -4) {
 		return 0;
-	} else if(loc(row, col) == -2) {
-		loc(row, col) = checkAround(row, col, 0);
-		if(loc(row, col) == 0) {
+	} else if(game[row][col] == -2) {
+		game[row][col] = checkAround(row, col, 0);
+		if(game[row][col] == 0) {
 			checkAround(row, col, 1);
 		}
 		return --clean;
-	} else if(loc(row, col) > 0 && loc(row, col) == checkAround(row, col, 2)) {
+	} else if(game[row][col] > 0 && game[row][col] == checkAround(row, col, 2)) {
 		return checkAround(row, col, 3);
 	}
 	return 1;
@@ -137,13 +123,13 @@ int checkAround(int row, int col, int opt) {
 	int y, x, total = 0;
 	for(y = row < 1 ? 0 : row - 1; y <= (row == ROWS - 1 ? ROWS - 1 : row + 1); y++) {
 		for(x = col < 1 ? 0 : col - 1; x <= (col == COLS - 1 ? COLS - 1 : col + 1); x++) {
-			if(opt == 0 && loc(y, x) / 2 == -2) {
+			if(opt == 0 && game[y][x] / 2 == -2) {
 				total++;
-			} else if(opt == 1 && loc(y, x) / 2 == -1) {
+			} else if(opt == 1 && game[y][x] / 2 == -1) {
 				checkSpot(y, x);
-			} else if(opt == 2 && loc(y, x) % 2 == -1) {
+			} else if(opt == 2 && game[y][x] % 2 == -1) {
 				total++;
-			} else if(opt == 3 && loc(y, x) < 0) {
+			} else if(opt == 3 && game[y][x] < 0) {
 				total++;
 				if(checkSpot(y, x) == 0) {
 					return 0;
@@ -158,7 +144,7 @@ void moveCursor() {
 	printBoard();
 	static int ch;
 	for(ch = getch(); ch != 'c'; ch = getch()) {
-		mvchgat(cursY, cursX*3, 3, A_NORMAL, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
+		mvchgat(cursY, cursX*3, 3, A_NORMAL, pair(cursY, cursX), NULL);
 		switch(ch) {
 			case 'w':
 			case KEY_UP:
@@ -185,10 +171,10 @@ void moveCursor() {
 				}
 				break;
 			case 'f':
-				if(loc(cursY, cursX) % 2 == -1) {
-					loc(cursY, cursX)++;
-				} else if(loc(cursY, cursX) < 0) {
-					loc(cursY, cursX)--;
+				if(game[cursY][cursX] % 2 == -1) {
+					game[cursY][cursX]++;
+				} else if(game[cursY][cursX] < 0) {
+					game[cursY][cursX]--;
 				}
 				printBoard();
 				break;
@@ -196,7 +182,7 @@ void moveCursor() {
 				endwin();
 				exit(0);
 		}
-		mvchgat(cursY, cursX*3, 3, A_REVERSE, (loc(cursY, cursX) % 2 == -1 ? 1 : (loc(cursY, cursX) < 0 ? 2 : 3)), NULL);
+		mvchgat(cursY, cursX*3, 3, A_REVERSE, pair(cursY, cursX), NULL);
 	}
 }
 
