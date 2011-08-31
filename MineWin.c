@@ -155,27 +155,19 @@ void moveCursor() {
 		switch(ch) {
 			case 'w':
 			case KEY_UP:
-				if(cursY > 0) {
-					cursY--;
-				}
+				cursY = (cursY + 9) % 10;
 				break;
 			case 'a':
 			case KEY_LEFT:
-				if(cursX > 0) {
-					cursX--;
-				}
+				cursX = (cursX + 9) % 10;
 				break;
 			case 's':
 			case KEY_DOWN:
-				if(cursY < COLS - 1) {
-					++cursY;
-				}
+				cursY = (cursY + 11) % 10;
 				break;
 			case 'd':
 			case KEY_RIGHT:
-				if(cursX < ROWS - 1) {
-					++cursX;
-				}
+				cursX = (cursX + 11) % 10;
 				break;
 			case 'f':
 				if(game[cursY][cursX] % 2 == -1) {
