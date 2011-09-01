@@ -90,7 +90,7 @@ void printBoard() {
 int takeTurn() {
 	moveCursor();
 	if(mines > 0) {
-		game[cursX][cursY] -= 2;
+		game[cursY][cursX] -= 2;
 		while(mines > 0) {
 			i = rand()%ROWS;
 			j = rand()%COLS;
@@ -123,15 +123,17 @@ int checkAround(int row, int col, int opt) {
 	int y, x, total = 0;
 	for(y = row - 1; y <= row + 1; y++) {
 		for(x = col - 1; x <= col + 1; x++) {
-			if(opt == 0 && game[(y+10)%10][(x+10)%10] / 2 == -2) {
+			i = (y+ROWS)%ROWS;
+			j = (x+COLS)%COLS;
+			if(opt == 0 && game[i][j] / 2 == -2) {
 				total++;
-			} else if(opt == 1 && game[(y+10)%10][(x+10)%10] / 2 == -1) {
-				checkSpot((y+10)%10, (x+10)%10);
-			} else if(opt == 2 && game[(y+10)%10][(x+10)%10] % 2 == -1) {
+			} else if(opt == 1 && game[i][j] / 2 == -1) {
+				checkSpot(i, j);
+			} else if(opt == 2 && game[i][j] % 2 == -1) {
 				total++;
-			} else if(opt == 3 && game[(y+10)%10][(x+10)%10] < 0) {
+			} else if(opt == 3 && game[i][j] < 0) {
 				total++;
-				if(checkSpot((y+10)%10, (x+10)%10) == 0) {
+				if(checkSpot(i, j) == 0) {
 					return 0;
 				}
 			}
@@ -146,21 +148,24 @@ void moveCursor() {
 	for(ch = getch(); ch != 'c'; ch = getch()) {
 		mvchgat(cursY, cursX*3, 3, A_NORMAL, pair(cursY, cursX), NULL);
 		switch(ch) {
+			case 'o':
+				printBoard(1);
+				break;
 			case 'w':
 			case KEY_UP:
-				cursY = (cursY + 9) % 10;
+				cursY = (cursY + ROWS - 1) % ROWS;
 				break;
 			case 'a':
 			case KEY_LEFT:
-				cursX = (cursX + 9) % 10;
+				cursX = (cursX + COLS - 1) % COLS;
 				break;
 			case 's':
 			case KEY_DOWN:
-				cursY = (cursY + 11) % 10;
+				cursY = (cursY + ROWS + 1) % ROWS;
 				break;
 			case 'd':
 			case KEY_RIGHT:
-				cursX = (cursX + 11) % 10;
+				cursX = (cursX + COLS + 1) % COLS;
 				break;
 			case 'f':
 				if(game[cursY][cursX] % 2 == -1) {
