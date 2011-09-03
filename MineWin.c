@@ -26,7 +26,9 @@
  *		-5 indicates a flagged, unchecked spot containing a mine
  */
 int game[ROWS][COLS];
-int cursY, cursX, clean, i, j, mines;
+int cursY, cursX;			//Track the current cursor location
+int i, j;					//Globally used for coordinat manipulation
+int mines, clean, flags;	//Tracking of number of mines, clean spots, and remaining flags, respectively
 WINDOW* game_win;
 WINDOW* stat_win;
 
@@ -61,15 +63,16 @@ int main() {
 		wclrtoeol(stat_win);
 		wscanw(stat_win, "%d", &mines);
 	} while(mines < 1);
-	//} while(mines < (ROWS * COLS * 0.075) || mines > (ROWS - 1) * (COLS - 1));
+	noecho();
 	wclear(stat_win);
 	wrefresh(stat_win);
+	flags = mines;
 	clean = (ROWS * COLS) - mines;
-	noecho();
 
 	while(takeTurn()) {}
 
 	printBoard();
+	wclear(stat_win);
 	mvwatprintw(stat_win, 0, 0, COLOR_PAIR(1) | A_BOLD, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
 	wgetch(stat_win);
 	delwin(game_win);
@@ -91,6 +94,8 @@ void printBoard() {
 			}
 		}
 	}
+	mvwprintw(stat_win, 0, 0, "Flags Remaining: %02d", flags);
+	wrefresh(stat_win);
 	mvwchgat(game_win, cursY, cursX*3, 3, A_REVERSE, pair(cursY,cursX), NULL);
 }
 
@@ -171,9 +176,11 @@ void moveCursor() {
 				break;
 			case 'f':
 				if(game[cursY][cursX] % 2 == -1) {
-					++game[cursY][cursX];
-				} else if(game[cursY][cursX] < 0) {
+					game[cursY][cursX]++;
+					flags++;
+				} else if(game[cursY][cursX] < 0 && flags > 0) {
 					game[cursY][cursX]--;
+					flags--;
 				}
 				printBoard();
 				break;
