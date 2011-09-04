@@ -4,8 +4,8 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>
-#define ROWS 16 
-#define COLS 30
+#define ROWS 10 
+#define COLS 10
 #define pair(y,x) (game[y][x] % 2 == -1 ? 1 : (game[y][x] < 0 ? 2 : 3))
 
 /*
@@ -29,12 +29,12 @@ int cursY, cursX;			//Track the current cursor location
 int i, j;					//Globally used for coordinate manipulation
 int mines, clean, flags;	//Tracking of number of mines, clean spots, and remaining flags, respectively
 
-void printBoard();
+void printSpot(int row, int col);
 int takeTurn();
 int checkSpot(int row, int col);
 int checkAround(int row, int col, int opt);
 void moveCursor();
-void mvatprintw(int y, int x, int attr, const char* msg);
+void endGame();
 
 int main() {
 	initscr();
@@ -43,53 +43,49 @@ int main() {
 		init_pair(1, COLOR_BLACK, COLOR_YELLOW);
 		init_pair(2, COLOR_WHITE, COLOR_BLUE);
 		init_pair(3, COLOR_BLACK, COLOR_CYAN);
+		init_pair(4, COLOR_RED, COLOR_CYAN);
+		init_pair(5, COLOR_RED, COLOR_YELLOW);
 	}
 	cbreak();
 	keypad(stdscr, TRUE);
 	curs_set(0);
 
 	srand(time(0));
-	for(i = 0; i < ROWS * COLS; i++) {
-		game[i/COLS][i%COLS] = -2;
+	for(i = 0; i < ROWS; i++) {
+		for(j = 0; j < COLS; j++) {
+			game[i][j] = -2;
+			printSpot(i, j);
+		}
 	}
-	printBoard();
-/*	do {
-		mvprintw(ROWS + 1, 0, "How many mines would you like? ");
+	mvchgat(cursY, cursX*3, 3, A_REVERSE, pair(cursY, cursX) , NULL);
+	do {
+		mvprintw(ROWS+1, 0, "How many mines would you like? ");
 		clrtoeol();
 		scanw("%2d", &mines);
-	} while(mines < 1);*/
+	} while(mines < 1);
 	noecho();
-	mines = 99;
-	clear();
 	flags = mines;
 	clean = (ROWS * COLS) - mines;
+	mvprintw(ROWS+1, 0, "Flags Remaining: %02d", flags);
+	clrtoeol();
 
 	while(takeTurn()) {}
-
-	printBoard();
-	move(ROWS+1, 0);
-	clrtoeol();
-	mvatprintw(ROWS + 1, 0, COLOR_PAIR(1) | A_BOLD, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
-	getch();
+	endGame();
 	endwin();
 
 	return 0;
 }
 
-void printBoard() {
-	for(i = 0; i < ROWS; i++) {
-		for(j = 0; j < COLS; j++) {
-			if(game[i][j] > 0) {
-				attron(COLOR_PAIR(3));
-				mvprintw(i, 3*j, "[%d]", game[i][j]);
-				attroff(COLOR_PAIR(3));
-			} else {
-				mvatprintw(i, 3*j, COLOR_PAIR(pair(i, j)), game[i][j] % 2 == -1 ? "[F]" : (game[i][j] < 0 ? "[*]" : "   "));
-			}
-		}
+void printSpot(int row, int col) {
+	if(game[row][col] > 0) {
+		attron(COLOR_PAIR(3));
+		mvprintw(row, 3*col, "[%d]", game[row][col]);
+		attroff(COLOR_PAIR(3));
+	} else {
+		attron(COLOR_PAIR(pair(row, col)));
+		mvprintw(row, 3*col, game[row][col] % 2 == -1 ? "[F]" : (game[row][col] < 0 ? "[?]" : "   "));
+		attroff(COLOR_PAIR(pair(row, col)));
 	}
-	mvprintw(ROWS+1, 0, "Flags Remaining: %02d", flags);
-	mvchgat(cursY, cursX*3, 3, A_REVERSE, pair(cursY, cursX) , NULL);
 }
 
 int takeTurn() {
@@ -110,16 +106,17 @@ int takeTurn() {
 }
 
 int checkSpot(int row, int col) {
-	if(game[row][col] == -4) {
-		return 0;
-	} else if(game[row][col] == -2) {
+	if(game[row][col] == -2) {
 		game[row][col] = checkAround(row, col, 0);
 		if(game[row][col] == 0) {
 			checkAround(row, col, 1);
 		}
+		printSpot(row, col);
 		return --clean;
 	} else if(game[row][col] > 0 && game[row][col] == checkAround(row, col, 2)) {
 		return checkAround(row, col, 3);
+	} else if(game[row][col] == -4) {
+		return 0;
 	}
 	return 1;
 }
@@ -146,7 +143,6 @@ int checkAround(int row, int col, int opt) {
 }
 
 void moveCursor() {
-	printBoard();
 	static int ch;
 	for(ch = getch(); ch != 'c'; ch = getch()) {
 		mvchgat(cursY, cursX*3, 3, A_NORMAL, pair(cursY, cursX), NULL);
@@ -175,7 +171,8 @@ void moveCursor() {
 					game[cursY][cursX]--;
 					flags--;
 				}
-				printBoard();
+				mvprintw(ROWS+1, 17, "%02d", flags);
+				printSpot(cursY, cursX);
 				break;
 			case 'q':
 				endwin();
@@ -185,12 +182,22 @@ void moveCursor() {
 	}
 }
 
-/*
- *	Turn an attribute on, call mvprintw, and turn the attribute back off
- *  Does not support formatting input, must be a constant character array
- */
-void mvatprintw(int y, int x, int attr, const char* msg) {
-	attron(attr);
-	mvprintw(y, x, msg);
-	attroff(attr);
+void endGame() {
+	if(clean > 0) {
+		for(i = 0; i < ROWS; i++) {
+			for(j = 0; j < COLS; j++) {
+				if((game[i][j] - 1) / 2 == -2) {
+					attron(COLOR_PAIR(game[i][j] == -4 ? 4 : 5));
+					mvprintw(i, 3*j, "   ");
+					mvaddch(i, (3*j)+1, game[i][j] == -4 ? ACS_DIAMOND : 'X');
+					attroff(COLOR_PAIR(game[i][j] == -4 ? 4 : 5));
+				}
+			}
+		}
+	}
+	attron(COLOR_PAIR(1) | A_BOLD);
+	mvprintw(ROWS+1, 0, clean > 0 ? "LOL YOU FAILED!" : "EPIC WINZ!");
+	attroff(COLOR_PAIR(1) | A_BOLD);
+	clrtoeol();
+	getch();
 }
