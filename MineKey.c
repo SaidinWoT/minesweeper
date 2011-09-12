@@ -6,7 +6,7 @@
 #include <time.h>
 #define ROWS 10 
 #define COLS 10
-#define pair(y,x) (game[y][x] % 2 == -1 ? 1 : (game[y][x] < 0 ? 2 : 3))
+#define pair(y,x) game[y][x] % 2 == -1 ? 1 : (game[y][x] < 0 ? 2 : 3)
 
 /*
  *	game array
@@ -57,17 +57,17 @@ int main() {
 			printSpot(i, j);
 		}
 	}
-	mvchgat(cursY, cursX*3, 3, A_REVERSE, pair(cursY, cursX) , NULL);
+	mvchgat(cursY, 3*cursX, 3, A_REVERSE, pair(cursY, cursX), NULL);
 	do {
 		mvprintw(ROWS+1, 0, "How many mines would you like? ");
-		clrtoeol();
+		clrtobot();
 		scanw("%2d", &mines);
 	} while(mines < 1);
 	noecho();
 	flags = mines;
 	clean = (ROWS * COLS) - mines;
 	mvprintw(ROWS+1, 0, "Flags Remaining: %02d", flags);
-	clrtoeol();
+	clrtobot();
 
 	while(takeTurn()) {}
 	endGame();
@@ -77,15 +77,13 @@ int main() {
 }
 
 void printSpot(int row, int col) {
+	attron(COLOR_PAIR(pair(row, col)));
 	if(game[row][col] > 0) {
-		attron(COLOR_PAIR(3));
 		mvprintw(row, 3*col, "[%d]", game[row][col]);
-		attroff(COLOR_PAIR(3));
 	} else {
-		attron(COLOR_PAIR(pair(row, col)));
 		mvprintw(row, 3*col, game[row][col] % 2 == -1 ? "[F]" : (game[row][col] < 0 ? "[?]" : "   "));
-		attroff(COLOR_PAIR(pair(row, col)));
 	}
+	attroff(COLOR_PAIR(pair(row, col)));
 }
 
 int takeTurn() {
@@ -125,7 +123,7 @@ int checkAround(int row, int col, int opt) {
 	int y, x, total = 0;
 	for(y = row < 1 ? 0 : row - 1; y <= (row == ROWS - 1 ? ROWS - 1 : row + 1); y++) {
 		for(x = col < 1 ? 0 : col - 1; x <= (col == COLS - 1 ? COLS - 1 : col + 1); x++) {
-			if(opt == 0 && game[y][x] / 2 == -2) {
+			if(opt == 0 && game[y][x] <= -4) {
 				total++;
 			} else if(opt == 1 && game[y][x] / 2 == -1) {
 				checkSpot(y, x);
@@ -145,7 +143,7 @@ int checkAround(int row, int col, int opt) {
 void moveCursor() {
 	static int ch;
 	for(ch = getch(); ch != 'c'; ch = getch()) {
-		mvchgat(cursY, cursX*3, 3, A_NORMAL, pair(cursY, cursX), NULL);
+		mvchgat(cursY, 3*cursX, 3, A_NORMAL, pair(cursY, cursX), NULL);
 		switch(ch) {
 			case 'w':
 			case KEY_UP:
@@ -178,7 +176,7 @@ void moveCursor() {
 				endwin();
 				exit(0);
 		}
-		mvchgat(cursY, cursX*3, 3, A_REVERSE, pair(cursY, cursX), NULL);
+		mvchgat(cursY, 3*cursX, 3, A_REVERSE, pair(cursY, cursX), NULL);
 	}
 }
 
